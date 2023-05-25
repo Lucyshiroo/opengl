@@ -1,14 +1,18 @@
 #include <GL/glut.h>
 #include <stdio.h>
+#include "lodepng.h"
 
 // Global variables for camera and scene
 float cameraX = 0.0f;
 float cameraY = 0.0f;
-float cameraZ = 0.0f;
+float cameraZ = 5.0f;
 float cameraAngleX = 0.0f;
 float cameraAngleY = 0.0f;
 float cameraSpeed = 0.1f;
 bool isPerspective = true;
+
+// Texture IDs for storing the loaded textures
+GLuint textureIDs[4];
 
 // Function declarations
 void keyboard(unsigned char key, int x, int y);
@@ -16,21 +20,19 @@ void mouse(int x, int y);
 void mouseScroll(int button, int dir, int x, int y);
 void renderScene();
 void init();
+void loadTextures();
 void drawPlane();
-void switchProjection();
 
 // Main function
 int main(int argc, char** argv) {
-    // Initialization and window creation
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
     glutInitWindowSize(800, 600);
     glutCreateWindow("3D Scene");
 
-    // Initialization of OpenGL settings
     init();
+    loadTextures();
 
-    // Start the main rendering loop
     glutMainLoop();
 
     return 0;
@@ -61,7 +63,7 @@ void keyboard(unsigned char key, int x, int y) {
             switchProjection();
             break;
     }
-    glutPostRedisplay(); // Notify GLUT to redraw the scene
+    glutPostRedisplay();
 }
 
 // Function to handle mouse input
@@ -83,12 +85,10 @@ void renderScene() {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    // Set camera position and orientation
     glTranslatef(-cameraX, -cameraY, -cameraZ);
     glRotatef(cameraAngleX, 1.0f, 0.0f, 0.0f);
     glRotatef(cameraAngleY, 0.0f, 1.0f, 0.0f);
 
-    // Draw the 3D scene objects
     drawPlane();
 
     glutSwapBuffers();
@@ -98,43 +98,109 @@ void renderScene() {
 void init() {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-    // Enable depth testing for proper object rendering
     glEnable(GL_DEPTH_TEST);
 
-    // Set up perspective or orthographic projection
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     switchProjection();
 
-    // Register callback functions for input handling
     glutKeyboardFunc(keyboard);
     glutPassiveMotionFunc(mouse);
     glutMouseWheelFunc(mouseScroll);
     glutDisplayFunc(renderScene);
 }
 
-// Function to draw a 3D plane
+// Function to load textures using lodepng library
+void loadTextures() {
+    std::string textureFiles[4] = {
+        "resources\textures\20230515_204415.jpg",
+        "resources\textures\20230515_204419.jpg",
+        "resources\textures\20230515_204428.jpg",
+        "resources\textures\20230515_204439.jpg"
+    };
+
+    glGenTextures(4, textureIDs);
+
+    for (int i = 0; i < 4; i++) {
+        std::vector<unsigned char> image;
+        unsigned width, height;
+
+        unsigned error = lodepng::decode(image, width, height, textureFiles[i]);
+
+        if (error != 0) {
+            printf("Error loading texture: %s\n", textureFiles[i].c_str());
+            continue;
+        }
+
+        glBindTexture(GL_TEXTURE_2D, textureIDs[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+}
+
+// Function to draw a textured plane
 void drawPlane() {
+    glEnable(GL_TEXTURE_2D);
+
+    glBindTexture(GL_TEXTURE_2D, textureIDs[0]);
     glBegin(GL_QUADS);
-    glColor3f(0.5f, 0.5f, 0.5f); // Set color to gray
-
-    // Define the vertices of the plane
+    glTexCoord2f(0.0f, 0.0f);
     glVertex3f(-1.0f, 0.0f, -1.0f);
+    glTexCoord2f(0.0f, 1.0f);
     glVertex3f(-1.0f, 0.0f, 1.0f);
+    glTexCoord2f(1.0f, 1.0f);
     glVertex3f(1.0f, 0.0f, 1.0f);
+    glTexCoord2f(1.0f, 0.0f);
     glVertex3f(1.0f, 0.0f, -1.0f);
-
     glEnd();
+
+    glBindTexture(GL_TEXTURE_2D, textureIDs[1]);
+    glBegin(GL_QUADS);
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-1.0f, 1.0f, -1.0f);
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex3f(-1.0f, 1.0f, 1.0f);
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex3f(1.0f, 1.0f, 1.0f);
+    glTexCoord2f(1.0f, 0.0f);
+    glVertex3f(1.0f, 1.0f, -1.0f);
+    glEnd();
+
+    glBindTexture(GL_TEXTURE_2D, textureIDs[2]);
+    glBegin(GL_QUADS);
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-1.0f, -1.0f, -1.0f);
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex3f(-1.0f, -1.0f, 1.0f);
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex3f(1.0f, -1.0f, 1.0f);
+    glTexCoord2f(1.0f, 0.0f);
+    glVertex3f(1.0f, -1.0f, -1.0f);
+    glEnd();
+
+    glBindTexture(GL_TEXTURE_2D, textureIDs[3]);
+    glBegin(GL_QUADS);
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-1.0f, -1.0f, -1.0f);
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex3f(-1.0f, 1.0f, -1.0f);
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex3f(-1.0f, 1.0f, 1.0f);
+    glTexCoord2f(1.0f, 0.0f);
+    glVertex3f(-1.0f, -1.0f, 1.0f);
+    glEnd();
+
+    glDisable(GL_TEXTURE_2D);
 }
 
 // Function to switch between perspective and orthographic projection
 void switchProjection() {
     if (isPerspective) {
-        // Set up perspective projection
         gluPerspective(45.0f, 800.0f / 600.0f, 0.1f, 100.0f);
         isPerspective = false;
     } else {
-        // Set up orthographic projection
         glOrtho(-2.0f, 2.0f, -2.0f, 2.0f, -10.0f, 10.0f);
         isPerspective = true;
     }

@@ -1,14 +1,16 @@
-CC := g++
-CFLAGS := -std=c++11 -Wall
-LIBS := -lGL -lGLU -lglut -lglfw -lGLEW -lglad
-INCLUDES := -Ipath/to/glad -Ipath/to/glfw/include -Ipath/to/glew/include -Ipath/to/glm
+CC = g++
+CFLAGS = -std=c++11 -Wall -Wextra
+LDFLAGS = -lGL -lGLU -lglut -lglad -LDFLAGS -lglfw
 
-SRCS := main.c glad.c
+TARGET = 3DScene
 
-all: opengl_app
+all: $(TARGET)
 
-opengl_app: $(SRCS)
-	$(CC) $(CFLAGS) $(SRCS) $(LIBS) $(INCLUDES) -o opengl_app
+$(TARGET): main.o
+	$(CC) $(CFLAGS) -o $(TARGET) main.o $(LDFLAGS)
+
+main.o: main.cpp
+	$(CC) $(CFLAGS) -c main.cpp
 
 clean:
-	rm -f opengl_app
+	rm -f $(TARGET) *.o
